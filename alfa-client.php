@@ -2,7 +2,7 @@
 /*
 Plugin Name: Alfa Web Client
 Description: Plugin menangani web yang dibuat Alfa
-Version: 1.3
+Version: 1.0.0
 Author: Alfa Joe
 */
 
@@ -10,7 +10,38 @@ if (!defined('ABSPATH')) {
 	exit;
 }
 
-// Tambah menu baru
+/******************* GitHub *******************/
+define('ALFA_CLIENT_VERSION', '1.0.0');
+define('ALFA_PLUGIN_REPO', 'AlfaJoe/alfa-client');
+
+function alfa_cek_plugin_update($transient) {
+	$remote = wp_remote_get("https://api.github.com/repos/" . ALFA_PLUGIN_REPO . "/releases/latest");
+
+	if (is_wp_error($remote) || wp_remote_retrieve_response_code($remote) !== 200) {
+		return $transient;
+	}
+
+	$remote = json_decode(wp_remote_retrieve_body($remote));
+
+	if ($remote && version_compare(ALFA_CLIENT_VERSION, $remote->tag_name, '<')) {
+		$transient->response[plugin_basename(__FILE__)] = (object) array(
+			'slug' => 'alfa-client',
+			'new_version' => $remote->tag_name,
+			'package' => $remote->zipball_url,
+			'url' => $remote->html_url,
+		);
+	}
+	return $transient;
+}
+add_filter('site_transient_update_plugins', 'alfa_cek_plugin_update');
+
+// Bersihkan plugin cache update
+function alfa_client_update_clear_cache() {
+	delete_site_transient('update_plugins');
+}
+add_action('upgrader_process_complete', 'alfa_client_update_clear_cache', 10, 2);
+
+/******************* Tambah menu baru *******************/
 /* function beking_menu() {
 	add_menu_page(
 		'Alfa Kelola Web Client',         // Page title
